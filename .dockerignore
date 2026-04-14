@@ -1,0 +1,62 @@
+# Git
+.git
+.gitignore
+.gitattributes
+
+# Docker
+Dockerfile
+docker-compose.yml
+.dockerignore
+DOCKER_README.md
+
+# IDE and Editor files
+.vscode
+.idea
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+*.sublime-project
+*.sublime-workspace
+
+# Node.js (if used for frontend build)
+node_modules
+npm-debug.log
+yarn-error.log
+
+# Build artifacts and cache
+.cache
+dist
+build
+
+# OS files
+.DS_Store
+.AppleDouble
+.LSOverride
+*.swp
+*.swo
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+*.log
+
+# Environment files (use build args instead)
+.env
+.env.local
+.env.*.local
+
+# CI/CD
+.github
+.gitlab-ci.yml
+.circleci
+
+# Documentation (optional - comment out if needed)
+docs/
+CONTRIBUTING.md
+LICENSE.md
+
+# this should be generated
+config.php
