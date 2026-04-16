@@ -1,16 +1,15 @@
-# Use official PHP image with Apache
-FROM php:8.4.20-apache
+FROM php:8.4.20-apache AS builder
 
-# Set environment variables
-ENV MOODLE_HOME=/var/www/moodle \
-    MOODLEDATA=/var/moodledata
+ARG MOODLE_HOME=/var/www/moodle
+ARG MOODLEDATA=/var/www/moodledata
+ARG MOODLE_TAG=v5.1.3
 
-# Install system dependencies
+ENV MOODLE_HOME=${MOODLE_HOME} \
+    MOODLEDATA=${MOODLEDATA} \
+    MOODLE_TAG=${MOODLE_TAG}
+
 RUN apt-get update && apt-get install -y --no-install-recommends \
     git \
-    curl \
-    wget \
-    unzip \
     pkg-config \
     libpng-dev \
     libjpeg62-turbo-dev \
@@ -21,53 +20,55 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libpq-dev \
     libonig-dev \
     libcurl4-openssl-dev \
-    libmagickwand-dev \
-    imagemagick \
-    graphviz \
-    aspell \
-    aspell-en \
-    ghostscript \
-    postgresql-client \
-    default-mysql-client \
-    && rm -rf /var/lib/apt/lists/*
+    libmagickwand-dev
 
-# Configure and install PHP extensions
+# Install PHP extensions
 RUN docker-php-ext-configure gd --with-freetype --with-jpeg && \
     docker-php-ext-install -j$(nproc) \
-    bcmath \
-    bz2 \
-    curl \
-    gd \
-    gmp \
-    iconv \
-    intl \
-    mbstring \
-    mysqli \
-    opcache \
-    pdo \
-    pdo_mysql \
-    pdo_pgsql \
-    pgsql \
-    soap \
-    xml \
-    zip
+    bcmath bz2 curl gd gmp iconv intl mbstring mysqli opcache pdo \
+    pdo_mysql pdo_pgsql pgsql soap xml zip
 
-# Install ImageMagick PHP extension
 RUN pecl install imagick && docker-php-ext-enable imagick
 
-# Configure PHP settings for Moodle
-RUN { \
-    echo "memory_limit = 512M"; \
-    echo "upload_max_filesize = 200M"; \
-    echo "post_max_size = 200M"; \
-    echo "max_input_vars = 5000"; \
-    echo "default_charset = utf-8"; \
-    echo "date.timezone = UTC"; \
-    echo "session.save_handler = files"; \
-    echo "session.use_strict_mode = 1"; \
-    } > /usr/local/etc/php/conf.d/moodle.ini
+# Clone Moodle
+RUN git clone  --depth 1 --branch ${MOODLE_TAG} https://github.com/moodle/moodle.git ${MOODLE_HOME}
 
-# Enable Apache modules
+# Stage 2: Runtime (clean, minimal)
+FROM php:8.4.20-apache
+
+ARG MOODLE_HOME=/var/www/moodle
+ARG MOODLEDATA=/var/moodledata
+
+ENV MOODLE_HOME=${MOODLE_HOME} \
+    MOODLEDATA=${MOODLEDATA}
+
+# Only runtime dependencies (no -dev packages)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl \
+    postgresql-client \
+    default-mysql-client \
+    graphviz \
+    ghostscript \
+    aspell \
+    aspell-en \
+    imagemagick \
+    libicu76 \
+    libzip5 \
+    libpng16-16 \
+    libjpeg62-turbo \
+    libfreetype6 \
+    libxml2 \
+    libpq5 \
+    libonig5 \
+    libcurl4 \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy PHP extensions from builder
+COPY --from=builder /usr/local/lib/php/extensions/ /usr/local/lib/php/extensions/
+COPY --from=builder /usr/local/etc/php/conf.d/ /usr/local/etc/php/conf.d/
+
+COPY --from=builder ${MOODLE_HOME} ${MOODLE_HOME}
+
 RUN a2enmod rewrite headers env ssl
 
 # Create Moodle directories
@@ -81,18 +82,11 @@ RUN mkdir -p ${MOODLE_HOME} && \
 COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
-# Copy Moodle source code into container
-COPY --chown=www-data:www-data --exclude=docker-entrypoint.sh . ${MOODLE_HOME}/
-
-# Set working directory
 WORKDIR ${MOODLE_HOME}
 
-# Expose HTTP port
 EXPOSE 80
 
-# Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
     CMD curl -f http://localhost/ || exit 1
 
-# Run entrypoint
 ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]

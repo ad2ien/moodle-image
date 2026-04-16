@@ -1,8 +1,8 @@
 #!/bin/bash
 set -e
 
-MOODLE_HOME="${MOODLE_HOME:-/var/www/moodle}"
-MOODLEDATA="${MOODLEDATA:-/var/moodledata}"
+MOODLE_HOME="/var/www/moodle"
+MOODLEDATA="/var/www/moodledata"
 
 # Get configuration from environment
 DB_TYPE=${DB_TYPE:-pgsql}
@@ -25,21 +25,21 @@ chown -R www-data:www-data "${MOODLEDATA}"
 chmod 755 "${MOODLEDATA}"
 
 # Generate config.php if it doesn't exist
-if [ ! -f "${MOODLE_HOME}/config.php" ]; then
+if [ ! -f "${MOODLE_HOME}/public/config.php" ]; then
     echo "Generating config.php from config-dist.php..."
     
-    if [ ! -f "${MOODLE_HOME}/config-dist.php" ]; then
+    if [ ! -f "${MOODLE_HOME}/public/config-dist.php" ]; then
         echo "ERROR: config-dist.php not found!"
         exit 1
     fi
     
     # Create config.php
-    cp "${MOODLE_HOME}/config-dist.php" "${MOODLE_HOME}/config.php"
+    cp "${MOODLE_HOME}/public/config-dist.php" "${MOODLE_HOME}/public/config.php"
     
     # Use PHP to update config.php with proper quoting
     php << 'PHPEOD'
 <?php
-$configFile = getenv('MOODLE_HOME') . '/config.php';
+$configFile = getenv('MOODLE_HOME') . '/public/config.php';
 $content = file_get_contents($configFile);
 
 $dbtype = getenv('DB_TYPE') ?: 'pgsql';
@@ -48,7 +48,7 @@ $dbport = getenv('DB_PORT') ?: '';
 $dbname = getenv('DB_NAME') ?: 'moodle';
 $dbuser = getenv('DB_USER') ?: 'moodleuser';
 $dbpass = getenv('DB_PASS') ?: 'moodlepass123';
-$moodledata = getenv('MOODLEDATA') ?: '/var/moodledata';
+$moodledata = getenv('MOODLEDATA') ?: '/var/www/moodledata';
 $wwwroot = getenv('WWW_ROOT') ?: 'http://localhost';
 $moodlehome = getenv('MOODLE_HOME') ?: '/var/www/moodle';
 
@@ -177,8 +177,8 @@ echo "config.php configured successfully\n";
 PHPEOD
 
     # Set proper permissions
-    chown www-data:www-data "${MOODLE_HOME}/config.php"
-    chmod 600 "${MOODLE_HOME}/config.php"
+    chown www-data:www-data "${MOODLE_HOME}/public/config.php"
+    chmod 600 "${MOODLE_HOME}/public/config.php"
     
     echo ""
     echo "========================================="
@@ -196,19 +196,42 @@ else
     echo "config.php already exists, skipping generation"
 fi
 
+# Configure PHP settings from environment variables
+echo ""
+echo "Configuring PHP settings..."
+PHP_MEMORY_LIMIT=${PHP_MEMORY_LIMIT:-512M}
+PHP_UPLOAD_MAX_FILESIZE=${PHP_UPLOAD_MAX_FILESIZE:-200M}
+PHP_POST_MAX_SIZE=${PHP_POST_MAX_SIZE:-200M}
+PHP_MAX_INPUT_VARS=${PHP_MAX_INPUT_VARS:-5000}
+PHP_MAX_EXECUTION_TIME=${PHP_MAX_EXECUTION_TIME:-300}
+
+{
+    echo "memory_limit = ${PHP_MEMORY_LIMIT}"
+    echo "upload_max_filesize = ${PHP_UPLOAD_MAX_FILESIZE}"
+    echo "post_max_size = ${PHP_POST_MAX_SIZE}"
+    echo "max_input_vars = ${PHP_MAX_INPUT_VARS}"
+    echo "max_execution_time = ${PHP_MAX_EXECUTION_TIME}"
+    echo "default_charset = utf-8"
+    echo "date.timezone = UTC"
+    echo "session.save_handler = files"
+    echo "session.use_strict_mode = 1"
+} > /usr/local/etc/php/conf.d/moodle.ini
+
 # Wait for database to be ready
 echo "Waiting for database to be available..."
 if [ "$DB_TYPE" = "pgsql" ]; then
     export PGPASSWORD="${DB_PASS}"
-    while ! pg_isready -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" > /dev/null 2>&1; do
+    while ! pg_isready -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME"  > /dev/null 2>&1; do
         echo "  Database not ready, waiting..."
         sleep 2
     done
     echo "Database is ready!"
     
     # Check if Moodle tables exist
-    TABLE_COUNT=$(psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -t -c "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'public';" 2>/dev/null || echo "0")
-    
+    TABLE_COUNT=$(psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -t -c "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='public';" | xargs)
+    if ! echo "$TABLE_COUNT" | grep -qE '^[0-9]+$'; then
+        TABLE_COUNT="0"
+    fi
     if [ "$TABLE_COUNT" -eq 0 ]; then
         echo "Database is empty, running Moodle installer..."
         cd "${MOODLE_HOME}/admin/cli"
@@ -249,26 +272,7 @@ elif [ "$DB_TYPE" = "mysqli" ] || [ "$DB_TYPE" = "mariadb" ]; then
     fi
 fi
 
-# Configure PHP settings from environment variables
-echo ""
-echo "Configuring PHP settings..."
-PHP_MEMORY_LIMIT=${PHP_MEMORY_LIMIT:-512M}
-PHP_UPLOAD_MAX_FILESIZE=${PHP_UPLOAD_MAX_FILESIZE:-200M}
-PHP_POST_MAX_SIZE=${PHP_POST_MAX_SIZE:-200M}
-PHP_MAX_INPUT_VARS=${PHP_MAX_INPUT_VARS:-5000}
-PHP_MAX_EXECUTION_TIME=${PHP_MAX_EXECUTION_TIME:-300}
 
-{
-    echo "memory_limit = ${PHP_MEMORY_LIMIT}"
-    echo "upload_max_filesize = ${PHP_UPLOAD_MAX_FILESIZE}"
-    echo "post_max_size = ${PHP_POST_MAX_SIZE}"
-    echo "max_input_vars = ${PHP_MAX_INPUT_VARS}"
-    echo "max_execution_time = ${PHP_MAX_EXECUTION_TIME}"
-    echo "default_charset = utf-8"
-    echo "date.timezone = UTC"
-    echo "session.save_handler = files"
-    echo "session.use_strict_mode = 1"
-} > /usr/local/etc/php/conf.d/moodle.ini
 
 # Configure Apache VirtualHost from environment variables
 echo "Configuring Apache VirtualHost..."
@@ -316,56 +320,6 @@ echo "  Memory Limit: ${PHP_MEMORY_LIMIT}"
 echo "  Upload Max Size: ${PHP_UPLOAD_MAX_FILESIZE}"
 echo "  POST Max Size: ${PHP_POST_MAX_SIZE}"
 echo "  Max Input Vars: ${PHP_MAX_INPUT_VARS}"
-echo "========================================="
-echo "Apache Configuration:"
-echo "  Server Name: ${SERVERNAME}"
-echo "  Document Root: ${MOODLE_HOME}/public"
-echo "========================================="
-
-# Configure Apache VirtualHost from environment variables
-echo ""
-echo "Configuring Apache VirtualHost..."
-SERVERNAME=${WWW_ROOT#http://}
-SERVERNAME=${SERVERNAME#https://}
-SERVERNAME=${SERVERNAME%%/*}
-
-[ -f /etc/apache2/sites-enabled/000-default.conf ] && rm /etc/apache2/sites-enabled/000-default.conf
-
-{
-    echo '<VirtualHost *:80>'
-    echo "    ServerName ${SERVERNAME}"
-    echo '    ServerAdmin admin@moodle.local'
-    echo "    DocumentRoot ${MOODLE_HOME}/public"
-    echo ''
-    echo "    <Directory ${MOODLE_HOME}/public>"
-    echo '        Options -Indexes +FollowSymLinks'
-    echo '        AllowOverride All'
-    echo '        Require all granted'
-    echo '    </Directory>'
-    echo ''
-    echo '    # Protect moodledata directory'
-    echo "    <Directory ${MOODLEDATA}>"
-    echo '        Require all denied'
-    echo '    </Directory>'
-    echo ''
-    echo '    # Security headers'
-    echo '    Header always set X-Content-Type-Options "nosniff"'
-    echo '    Header always set X-Frame-Options "SAMEORIGIN"'
-    echo '    Header always set X-XSS-Protection "1; mode=block"'
-    echo ''
-    echo '    ErrorLog ${APACHE_LOG_DIR}/moodle-error.log'
-    echo '    CustomLog ${APACHE_LOG_DIR}/moodle-access.log combined'
-    echo '</VirtualHost>'
-} > /etc/apache2/sites-available/moodle.conf
-
-# Enable Apache modules and site
-a2enmod rewrite headers env ssl > /dev/null 2>&1
-a2ensite moodle > /dev/null 2>&1
-
-# Set global ServerName to suppress FQDN warning
-echo "ServerName localhost" >> /etc/apache2/apache2.conf
-
-echo ""
 echo "========================================="
 echo "Apache Configuration:"
 echo "  Server Name: ${SERVERNAME}"
