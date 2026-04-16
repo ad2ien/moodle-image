@@ -24,7 +24,7 @@ services:
     env_file:
       - .env
     ports:
-      - "${WEB_PORT:-80}:80"
+      - "${WEB_PORT}:80"
     volumes:
       # Persistent storage for user data
       - moodle_data:/var/www/moodledata

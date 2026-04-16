@@ -4,19 +4,17 @@ set -e
 MOODLE_HOME="/var/www/moodle"
 MOODLEDATA="/var/www/moodledata"
 
-# Get configuration from environment
-DB_TYPE=${DB_TYPE:-pgsql}
-DB_HOST=${DB_HOST:-db}
-DB_PORT=${DB_PORT:-5432}
-DB_NAME=${DB_NAME:-moodle}
-DB_USER=${DB_USER:-moodleuser}
-DB_PASS=${DB_PASS:-moodlepass123}
-ADMIN_PASS=${ADMIN_PASS:-Admin@123}
-WWW_ROOT=${WWW_ROOT:-http://localhost}
-
 echo "========================================="
 echo "Moodle Docker Entrypoint"
 echo "========================================="
+
+# Get configuration from environment
+echo "DB_TYPE=${DB_TYPE}"
+echo "DB_HOST=${DB_HOST}"
+echo "DB_PORT=${DB_PORT}"
+echo "DB_NAME=${DB_NAME}"
+echo "DB_USER=${DB_USER}"
+echo "WWW_ROOT=${WWW_ROOT}"
 
 # Fix permissions
 echo "Setting up file permissions..."
@@ -42,14 +40,14 @@ if [ ! -f "${MOODLE_HOME}/config.php" ]; then
 $configFile = getenv('MOODLE_HOME') . '/config.php';
 $content = file_get_contents($configFile);
 
-$dbtype = getenv('DB_TYPE') ?: 'pgsql';
-$dbhost = getenv('DB_HOST') ?: 'postgres';
-$dbport = getenv('DB_PORT') ?: '';
-$dbname = getenv('DB_NAME') ?: 'moodle';
-$dbuser = getenv('DB_USER') ?: 'moodleuser';
-$dbpass = getenv('DB_PASS') ?: 'moodlepass123';
+$dbtype = getenv('DB_TYPE');
+$dbhost = getenv('DB_HOST');
+$dbport = getenv('DB_PORT');
+$dbname = getenv('DB_NAME');
+$dbuser = getenv('DB_USER');
+$dbpass = getenv('DB_PASS');
 $moodledata = getenv('MOODLEDATA') ?: '/var/www/moodledata';
-$wwwroot = getenv('WWW_ROOT') ?: 'http://localhost';
+$wwwroot = getenv('WWW_ROOT');
 $moodlehome = getenv('MOODLE_HOME') ?: '/var/www/moodle';
 
 // Replace database type
@@ -285,7 +283,7 @@ SERVERNAME=${SERVERNAME%%/*}
 {
     echo '<VirtualHost *:80>'
     echo "    ServerName ${SERVERNAME}"
-    echo '    ServerAdmin admin@moodle.local'
+    echo "    ServerAdmin ${ADMIN_EMAIL}"
     echo "    DocumentRoot ${MOODLE_HOME}/public"
     echo ''
     echo "    <Directory ${MOODLE_HOME}/public>"
