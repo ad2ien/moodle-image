@@ -25,21 +25,21 @@ chown -R www-data:www-data "${MOODLEDATA}"
 chmod 755 "${MOODLEDATA}"
 
 # Generate config.php if it doesn't exist
-if [ ! -f "${MOODLE_HOME}/public/config.php" ]; then
+if [ ! -f "${MOODLE_HOME}/config.php" ]; then
     echo "Generating config.php from config-dist.php..."
     
-    if [ ! -f "${MOODLE_HOME}/public/config-dist.php" ]; then
+    if [ ! -f "${MOODLE_HOME}/config-dist.php" ]; then
         echo "ERROR: config-dist.php not found!"
         exit 1
     fi
     
     # Create config.php
-    cp "${MOODLE_HOME}/public/config-dist.php" "${MOODLE_HOME}/public/config.php"
+    cp "${MOODLE_HOME}/config-dist.php" "${MOODLE_HOME}/config.php"
     
     # Use PHP to update config.php with proper quoting
     php << 'PHPEOD'
 <?php
-$configFile = getenv('MOODLE_HOME') . '/public/config.php';
+$configFile = getenv('MOODLE_HOME') . '/config.php';
 $content = file_get_contents($configFile);
 
 $dbtype = getenv('DB_TYPE') ?: 'pgsql';
@@ -177,8 +177,8 @@ echo "config.php configured successfully\n";
 PHPEOD
 
     # Set proper permissions
-    chown www-data:www-data "${MOODLE_HOME}/public/config.php"
-    chmod 600 "${MOODLE_HOME}/public/config.php"
+    chown www-data:www-data "${MOODLE_HOME}/config.php"
+    chmod 600 "${MOODLE_HOME}/config.php"
     
     echo ""
     echo "========================================="
@@ -312,6 +312,9 @@ SERVERNAME=${SERVERNAME%%/*}
 # Enable Apache modules and site
 a2enmod rewrite headers env ssl > /dev/null 2>&1
 a2ensite moodle > /dev/null 2>&1
+
+# Set global ServerName to suppress FQDN warning
+echo "ServerName ${SERVERNAME}" >> /etc/apache2/apache2.conf
 
 echo ""
 echo "========================================="
