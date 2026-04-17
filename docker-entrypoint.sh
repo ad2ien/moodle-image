@@ -16,11 +16,7 @@ echo "DB_NAME=${DB_NAME}"
 echo "DB_USER=${DB_USER}"
 echo "WWW_ROOT=${WWW_ROOT}"
 
-# Fix permissions
-echo "Setting up file permissions..."
-chown -R www-data:www-data "${MOODLE_HOME}"
-chown -R www-data:www-data "${MOODLEDATA}"
-chmod 755 "${MOODLEDATA}"
+
 
 # Generate config.php if it doesn't exist
 if [ ! -f "${MOODLE_HOME}/config.php" ]; then
@@ -296,6 +292,9 @@ SERVERNAME=${SERVERNAME%%/*}
     echo "    <Directory ${MOODLEDATA}>"
     echo '        Require all denied'
     echo '    </Directory>'
+    echo ''
+    echo '    # Trust X-Forwarded-Proto header from Traefik reverse proxy'
+    echo '    SetEnvIf X-Forwarded-Proto "^https$" HTTPS=on'
     echo ''
     echo '    # Security headers'
     echo '    Header always set X-Content-Type-Options "nosniff"'

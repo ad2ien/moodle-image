@@ -37,7 +37,7 @@ RUN git clone  --depth 1 --branch ${MOODLE_TAG} https://github.com/moodle/moodle
 FROM php:8.4.20-apache
 
 ARG MOODLE_HOME=/var/www/moodle
-ARG MOODLEDATA=/var/moodledata
+ARG MOODLEDATA=/var/www/moodledata
 
 ENV MOODLE_HOME=${MOODLE_HOME} \
     MOODLEDATA=${MOODLEDATA}
@@ -67,18 +67,17 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY --from=builder /usr/local/lib/php/extensions/ /usr/local/lib/php/extensions/
 COPY --from=builder /usr/local/etc/php/conf.d/ /usr/local/etc/php/conf.d/
 
-COPY --from=builder ${MOODLE_HOME} ${MOODLE_HOME}
+# Copy Moodle with correct ownership during copy (more efficient than COPY then chown)
+COPY --chown=www-data:www-data --from=builder ${MOODLE_HOME} ${MOODLE_HOME}
 
 RUN a2enmod rewrite headers env ssl
 
-# Create Moodle directories
-RUN mkdir -p ${MOODLE_HOME} && \
-    mkdir -p ${MOODLEDATA} && \
-    chown -R www-data:www-data ${MOODLE_HOME} && \
+# Create and set permissions for Moodle data directory
+RUN mkdir -p ${MOODLEDATA} && \
     chown -R www-data:www-data ${MOODLEDATA} && \
     chmod 755 ${MOODLEDATA}
 
-# Copy entrypoint script
+# Copy entrypoint script and set permissions
 COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
