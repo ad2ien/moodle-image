@@ -28,13 +28,6 @@ services:
     volumes:
       # Persistent storage for user data
       - moodle_data:/var/www/moodledata
-    #TODO there's healthcheck in the Dockerfile, is it really needed?
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost/"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 40s
     restart: unless-stopped
 
 volumes:
