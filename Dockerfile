@@ -9,22 +9,23 @@ ENV MOODLE_HOME=${MOODLE_HOME} \
     MOODLE_TAG=${MOODLE_TAG}
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    git \
-    pkg-config \
-    libpng-dev \
-    libjpeg62-turbo-dev \
-    libfreetype6-dev \
-    libzip-dev \
-    libxml2-dev \
-    libicu-dev \
-    libpq-dev \
-    libonig-dev \
-    libcurl4-openssl-dev \
-    libmagickwand-dev
+    git=1:2.47.3-0+deb13u1 \
+    pkg-config=1.8.1-4 \
+    libpng-dev=1.6.48-1+deb13u4 \
+    libjpeg62-turbo-dev=1:2.1.5-4 \
+    libfreetype6-dev=2.13.3+dfsg-1+deb13u1 \
+    libzip-dev=1.11.3-2 \
+    libxml2-dev=2.12.7+dfsg+really2.9.14-2.1+deb13u2 \
+    libicu-dev=76.1-4 \
+    libpq-dev=17.9-0+deb13u1 \
+    libonig-dev=6.9.9-1+b1 \
+    libcurl4-openssl-dev=8.14.1-2+deb13u2 \
+    libmagickwand-dev=8:7.1.1.43+dfsg1-1+deb13u7 \
+    && rm -rf /var/lib/apt/lists/*
 
 # Install PHP extensions
 RUN docker-php-ext-configure gd --with-freetype --with-jpeg && \
-    docker-php-ext-install -j$(nproc) \
+    docker-php-ext-install "-j$(nproc)" \
     bcmath bz2 curl gd gmp iconv intl mbstring mysqli opcache pdo \
     pdo_mysql pdo_pgsql pgsql soap xml zip
 
@@ -44,23 +45,23 @@ ENV MOODLE_HOME=${MOODLE_HOME} \
 
 # Only runtime dependencies (no -dev packages)
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    curl \
-    postgresql-client \
-    default-mysql-client \
-    graphviz \
-    ghostscript \
-    aspell \
-    aspell-en \
-    imagemagick \
-    libicu76 \
-    libzip5 \
-    libpng16-16 \
-    libjpeg62-turbo \
-    libfreetype6 \
-    libxml2 \
-    libpq5 \
-    libonig5 \
-    libcurl4 \
+    curl=8.14.1-2+deb13u2 \
+    postgresql-client=17+278 \
+    default-mysql-client=1.1.1 \
+    graphviz=2.42.4-3 \
+    ghostscript=10.05.1~dfsg-1+deb13u1 \
+    aspell=0.60.8.1-4 \
+    aspell-en=2020.12.07-0-1 \
+    imagemagick=8:7.1.1.43+dfsg1-1+deb13u7 \
+    libicu76=76.1-4 \
+    libzip5=1.11.3-2 \
+    libpng16-16=1.6.48-1+deb13u4 \
+    libjpeg62-turbo=1:2.1.5-4 \
+    libfreetype6=2.13.3+dfsg-1+deb13u1 \
+    libxml2=2.12.7+dfsg+really2.9.14-2.1+deb13u2 \
+    libpq5=17.9-0+deb13u1 \
+    libonig5=6.9.9-1+b1 \
+    libcurl4=8.14.1-2+deb13u2 \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy PHP extensions from builder
