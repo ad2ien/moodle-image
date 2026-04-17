@@ -15,9 +15,9 @@ services:
       retries: 5
     restart: unless-stopped
 
-  # Moodle Web Service
   moodle:
-    image: moodle:ad2ien-5.1
+    build:
+      context: .
     depends_on:
       db:
         condition: service_healthy
