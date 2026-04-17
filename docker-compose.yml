@@ -35,5 +35,3 @@ volumes:
     driver: local
   moodle_data:
     driver: local
-  redis_data:
-    driver: local

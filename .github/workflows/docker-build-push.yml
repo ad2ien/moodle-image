@@ -3,8 +3,8 @@ name: Build and Push Docker Image
 on:
   push:
     paths:
-      - 'Dockerfile'
-      - 'docker-entrypoint.sh'
+      - "Dockerfile"
+      - "docker-entrypoint.sh"
     branches:
       - main
   workflow_dispatch:
@@ -17,11 +17,14 @@ jobs:
   build-and-push:
     runs-on: ubuntu-latest
     permissions:
-      contents: read
+      contents: write
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
+
+      - name: Run Hadolint
+        uses: hadolint/hadolint-action@v3.3.0
 
       - name: Extract MOODLE_TAG from Dockerfile
         id: moodle-tag
@@ -57,6 +60,28 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+      - name: Check if tag exists
+        id: tag-check
+        run: |
+          TAG="${{ steps.moodle-tag.outputs.tag }}"
+          if git rev-parse "$TAG" >/dev/null 2>&1; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+            echo "Tag $TAG already exists"
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+            echo "Tag $TAG does not exist and will be created"
+          fi
+
+      - name: Create and push Git tag
+        if: steps.tag-check.outputs.exists == 'false'
+        run: |
+          TAG="${{ steps.moodle-tag.outputs.tag }}"
+          git config user.name "github-actions"
+          git config user.email "bot@github-actions.github.com"
+          git tag -a "$TAG" -m "Docker image built with Moodle $TAG"
+          git push origin "$TAG"
+          echo "✓ Created and pushed tag: $TAG"
 
       - name: Docker Hub Description
         uses: peter-evans/dockerhub-description@v5
