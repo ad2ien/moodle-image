@@ -2,7 +2,7 @@ FROM php:8.4.20-apache AS builder
 
 ARG MOODLE_HOME=/var/www/moodle
 ARG MOODLEDATA=/var/www/moodledata
-ARG MOODLE_TAG=v5.1.3
+ARG MOODLE_TAG=v5.2.0
 
 ENV MOODLE_HOME=${MOODLE_HOME} \
     MOODLEDATA=${MOODLEDATA} \
