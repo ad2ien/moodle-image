@@ -315,7 +315,9 @@ echo "ServerName ${SERVERNAME}" >> /etc/apache2/apache2.conf
 
 if [ "${MOODLE_AUTO_UPGRADE:-false}" = "true" ]; then
   cd "${MOODLE_HOME}/admin/cli"
+  php maintenance.php --enable
   php upgrade.php --non-interactive
+  php maintenance.php --disable
 fi
 
 echo ""
