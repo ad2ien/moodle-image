@@ -313,6 +313,11 @@ a2ensite moodle > /dev/null 2>&1
 # Set global ServerName to suppress FQDN warning
 echo "ServerName ${SERVERNAME}" >> /etc/apache2/apache2.conf
 
+if [ "${MOODLE_AUTO_UPGRADE:-false}" = "true" ]; then
+  cd "${MOODLE_HOME}/admin/cli"
+  php upgrade.php --non-interactive
+fi
+
 echo ""
 echo "========================================="
 echo "PHP Configuration:"
