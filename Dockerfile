@@ -1,4 +1,4 @@
-FROM php:8.4.20-apache AS builder
+FROM php:8.5.7-apache AS builder
 
 ARG MOODLE_HOME=/var/www/moodle
 ARG MOODLEDATA=/var/www/moodledata
@@ -35,7 +35,7 @@ RUN pecl install imagick && docker-php-ext-enable imagick
 RUN git clone  --depth 1 --branch ${MOODLE_TAG} https://github.com/moodle/moodle.git ${MOODLE_HOME}
 
 # Stage 2: Runtime (clean, minimal)
-FROM php:8.4.20-apache
+FROM php:8.5.7-apache
 
 ARG MOODLE_HOME=/var/www/moodle
 ARG MOODLEDATA=/var/www/moodledata
