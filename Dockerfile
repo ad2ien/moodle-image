@@ -1,4 +1,4 @@
-FROM php:8.5.10-apache AS builder
+FROM php:8.5.12-apache AS builder
 
 ARG MOODLE_HOME=/var/www/moodle
 ARG MOODLEDATA=/var/www/moodledata
@@ -11,7 +11,7 @@ ENV MOODLE_HOME=${MOODLE_HOME} \
 RUN apt-get update && apt-get install -y --no-install-recommends \
     git=1:2.47.3-0+deb13u1 \
     pkg-config=1.8.1-4 \
-    libpng-dev=1.6.48-1+deb13u5 \
+    libpng-dev=1.6.48-1+deb13u6 \
     libjpeg62-turbo-dev=1:2.1.5-4 \
     libfreetype6-dev=2.13.3+dfsg-1+deb13u1 \
     libzip-dev=1.11.3-2 \
@@ -19,8 +19,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libicu-dev=76.1-4 \
     libpq-dev=17.11-0+deb13u1 \
     libonig-dev=6.9.9-1+b1 \
-    libcurl4-openssl-dev=8.14.1-2+deb13u4 \
-    libmagickwand-dev=8:7.1.1.43+dfsg1-1+deb13u11 \
+    libcurl4-openssl-dev=8.14.1-2+deb13u7 \
+    libmagickwand-dev=8:7.1.1.43+dfsg1-1+deb13u12 \
     && rm -rf /var/lib/apt/lists/*
 
 # Install PHP extensions
@@ -35,7 +35,7 @@ RUN pecl install imagick && docker-php-ext-enable imagick
 RUN git clone  --depth 1 --branch ${MOODLE_TAG} https://github.com/moodle/moodle.git ${MOODLE_HOME}
 
 # Stage 2: Runtime (clean, minimal)
-FROM php:8.5.10-apache
+FROM php:8.5.12-apache
 
 ARG MOODLE_HOME=/var/www/moodle
 ARG MOODLEDATA=/var/www/moodledata
@@ -45,23 +45,23 @@ ENV MOODLE_HOME=${MOODLE_HOME} \
 
 # Only runtime dependencies (no -dev packages)
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    curl=8.14.1-2+deb13u4 \
+    curl=8.14.1-2+deb13u7 \
     postgresql-client=17+278 \
     default-mysql-client=1.1.1 \
     graphviz=2.42.4-3 \
-    ghostscript=10.05.1~dfsg-1+deb13u1 \
+    ghostscript=10.05.1~dfsg-1+deb13u3 \
     aspell=0.60.8.1-4 \
     aspell-en=2020.12.07-0-1 \
-    imagemagick=8:7.1.1.43+dfsg1-1+deb13u11 \
+    imagemagick=8:7.1.1.43+dfsg1-1+deb13u12 \
     libicu76=76.1-4 \
     libzip5=1.11.3-2 \
-    libpng16-16t64=1.6.48-1+deb13u5 \
+    libpng16-16t64=1.6.48-1+deb13u6 \
     libjpeg62-turbo=1:2.1.5-4 \
     libfreetype6=2.13.3+dfsg-1+deb13u1 \
     libxml2=2.12.7+dfsg+really2.9.14-2.1+deb13u3 \
     libpq5=17.11-0+deb13u1 \
     libonig5=6.9.9-1+b1 \
-    libcurl4t64=8.14.1-2+deb13u4 \
+    libcurl4t64=8.14.1-2+deb13u7 \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy PHP extensions from builder
